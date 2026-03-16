@@ -200,6 +200,21 @@
     .b-admin  { background: rgba(160,96,16,.15);  color: var(--warn); }
     .b-member { background: rgba(92,51,23,.1);    color: var(--accent); }
 
+    /* Error state */
+    .error-state { text-align: center; padding: 2rem 1rem; }
+    .error-icon { font-size: 2rem; margin-bottom: .6rem; }
+    .error-title { font-weight: 800; color: var(--danger); margin-bottom: .3rem; font-size: .9rem; }
+    .error-detail { font-size: .73rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.6; }
+    .btn-retry {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .5rem 1.2rem;
+      background: var(--surface2); border: 2px solid var(--border);
+      border-radius: 10px; color: var(--accent);
+      font-family: var(--font); font-size: .8rem; font-weight: 800;
+      cursor: pointer; transition: all .2s;
+    }
+    .btn-retry:hover { border-color: var(--accent); background: rgba(92,51,23,.08); transform: translateY(-1px); }
+
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 20px; }
@@ -478,19 +493,62 @@
     }
   }
 
+  /* ── loadUsers with improved error handling ── */
   async function loadUsers() {
     const tbody = document.getElementById('user-tbody');
+
+    // Show loading state
+    tbody.innerHTML = `
+      <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted)">
+        ❄ กำลังโหลด…
+      </td></tr>`;
+
     try {
       const d = await apiFetch(`${CONFIG.USER_SERVICE_URL}/api/users`);
       const users = Array.isArray(d) ? d : (d.users || []);
+
+      if (!users.length) {
+        tbody.innerHTML = `
+          <tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted)">
+            ไม่พบผู้ใช้งาน
+          </td></tr>`;
+        return;
+      }
+
       tbody.innerHTML = users.map(u => `<tr>
         <td style="color:var(--muted)">${u.user_id || u.id}</td>
         <td style="font-weight:800">${u.username || '-'}</td>
         <td style="color:var(--muted)">${u.email || '-'}</td>
         <td><span class="badge b-${u.role || 'member'}">${u.role || 'member'}</span></td>
       </tr>`).join('');
+
     } catch (e) {
-      tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger);text-align:center;padding:1rem">${e.message}</td></tr>`;
+      // Map technical errors to friendly Thai messages
+      let reason = 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
+      const msg = (e.message || '').toLowerCase();
+      if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network')) {
+        reason = 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อ';
+      } else if (msg.includes('401') || msg.includes('unauthorized')) {
+        reason = 'Session หมดอายุ กรุณาเข้าสู่ระบบใหม่';
+      } else if (msg.includes('403') || msg.includes('forbidden')) {
+        reason = 'ไม่มีสิทธิ์เข้าถึงข้อมูลนี้';
+      } else if (msg.includes('500')) {
+        reason = 'เซิร์ฟเวอร์ขัดข้อง กรุณาลองใหม่ภายหลัง';
+      } else if (e.message) {
+        reason = e.message;
+      }
+
+      tbody.innerHTML = `
+        <tr><td colspan="4">
+          <div class="error-state">
+            <div class="error-icon">🍪</div>
+            <div class="error-title">โหลดข้อมูลไม่สำเร็จ</div>
+            <div class="error-detail">${reason}</div>
+            <button class="btn-retry" onclick="loadUsers()">
+              🔄 ลองใหม่อีกครั้ง
+            </button>
+          </div>
+        </td></tr>`;
     }
   }
 
