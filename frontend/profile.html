@@ -504,7 +504,7 @@
       </td></tr>`;
 
     try {
-      const d = await apiFetch(`${CONFIG.USER_SERVICE_URL}/api/users`);
+      const d = await apiFetch(`${CONFIG.USER_SERVICE_URL}/api/users/`);
       const users = Array.isArray(d) ? d : (d.users || []);
 
       if (!users.length) {
