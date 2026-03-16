@@ -1,11 +1,9 @@
 const { Pool } = require("pg");
 
 const pool = new Pool({
-  host: process.env.DB_HOST || "postgres",
-  port: parseInt(process.env.DB_PORT, 10) || 5432,
-  database: process.env.DB_NAME || "taskboard",
-  user: process.env.DB_USER || "admin",
-  password: process.env.DB_PASSWORD || "secret123",
+  // ใช้ DATABASE_URL เป็นหลักเพื่อให้รองรับ Railway และ Docker Compose ของ Set 2
+  // Fallback ไปที่พอร์ต 5434 ซึ่งเป็นพอร์ตของ task-db ที่ตั้งไว้ใน docker-compose.yml
+  connectionString: process.env.DATABASE_URL || "postgres://admin:secret@localhost:5434/taskdb",
 });
 
 module.exports = { pool };
