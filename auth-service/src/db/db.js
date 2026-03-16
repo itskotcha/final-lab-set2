@@ -1,11 +1,8 @@
 const { Pool } = require("pg");
 
 const pool = new Pool({
-  host: process.env.DB_HOST || "postgres",
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || "taskboard",
-  user: process.env.DB_USER || "admin",
-  password: process.env.DB_PASSWORD || "secret123",
+  // ใช้ DATABASE_URL เป็นหลักตามข้อกำหนดของ Set 2 (Railway & Docker)
+  connectionString: process.env.DATABASE_URL || "postgres://admin:secret@localhost:5433/authdb",
 });
 
 module.exports = { pool };

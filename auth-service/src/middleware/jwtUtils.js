@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 
-const SECRET  = process.env.JWT_SECRET  || 'dev-secret';
-const EXPIRES = process.env.JWT_EXPIRES || '1h';
+// ปรับให้ตรงกับ Environment Variables ที่กำหนดในโจทย์ Set 2
+const SECRET  = process.env.JWT_SECRET || 'dev-shared-secret';
+const EXPIRES = process.env.JWT_EXPIRES_IN || '1h';
 
 function generateToken(payload) {
   return jwt.sign(payload, SECRET, { expiresIn: EXPIRES });
