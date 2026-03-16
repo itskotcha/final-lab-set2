@@ -11,19 +11,29 @@
 
 ### Student 1: นางสาวดาวประกาย เสาร์สิงห์
 
-* รับผิดชอบ **Auth Service**
-* พัฒนาระบบ **Login และ JWT Authentication**
-* ออกแบบ **Database schema สำหรับ users**
-* ตั้งค่า **Nginx Reverse Proxy และ Rate Limiting**
-* ทดสอบ **Authentication API และ Security flow**
+**Deployment**
+- สร้างโปรเจกต์บน Railway
+- ตั้งค่า Environment Variables สำหรับแต่ละ Service
+- Deploy Service ทั้งหมดให้ใช้งานได้จริง
+
+**Testing & Integration**
+- ทดสอบระบบแบบ end-to-end
+- ตรวจสอบว่า Task Service, Auth Service และ Frontend ทำงานร่วมกันได้
+
+**Documentation**
+- ทำ README / Screenshots / Architecture Diagram
 
 ### Student 2: นางสาวกชพร วงศ์ใหญ่
 
-* รับผิดชอบ **Task Service**
-* พัฒนาระบบ **Task CRUD API**
-* พัฒนา **Log Service สำหรับบันทึกเหตุการณ์ในระบบ**
-* พัฒนา **Frontend สำหรับ Task Board**
-* จัดการ **Docker Compose และการเชื่อมต่อระหว่าง services**
+**Backend (Auth + Task Service)**
+- ตั้งค่า Database ของแต่ละ Service
+- เขียน API สำหรับแต่ละ Service
+- จัดการ Security (JWT, Password hashing, Env vars)
+
+**Frontend**
+- ทำหน้า Login / Register / Task Board / Profile
+- เชื่อมต่อ API ของ Auth และ Task Service
+- ทำ Task filtering, Task editing, Task deletion
 
 ---
 
