@@ -1,213 +1,170 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const { pool } = require('../db/db');
-const { generateToken, verifyToken } = require('../middleware/jwtUtils');
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const pool = require("../db/db");
+const { signToken, requireAuth } = require("../middleware/jwtUtils");
 
 const router = express.Router();
 
-// bcrypt hash ที่ใช้สำหรับ timing-safe compare กรณีไม่พบ user ในระบบ
-const DUMMY_BCRYPT_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8y0R6VQwWi4KFOeFHrgb3R04QLbL7a';
-
-// ── Helper: ฟังก์ชันบันทึก log ลงตาราง logs ใน auth-db ──
-async function logEvent({ level, event, userId, message, meta = {} }) {
+// ─── helper: log to DB ──────────────────────────────────────────────────────
+async function writeLog(level, event, userId, message, meta = {}) {
   try {
     await pool.query(
-      'INSERT INTO logs (level, event, user_id, message, meta) VALUES ($1, $2, $3, $4, $5)',
-      [level, event, userId, message, meta]
+      `INSERT INTO logs (level, event, user_id, message, meta)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [level, event, userId || null, message, JSON.stringify(meta)],
     );
-  } catch (err) {
-    console.error('[LOG ERROR]', err);
+  } catch (_) {
+    /* ไม่ให้ log error ขัด flow หลัก */
   }
 }
 
-// ─────────────────────────────────────────────
-// POST /api/auth/register
-// ─────────────────────────────────────────────
-router.post('/register', async (req, res) => {
+// ─── POST /api/auth/register ─────────────────────────────────────────────────
+router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
-  const ip = req.headers['x-real-ip'] || req.ip;
 
   if (!username || !email || !password) {
-    return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน (username, email, password)' });
+    return res
+      .status(400)
+      .json({ error: "username, email และ password จำเป็นต้องกรอก" });
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
-
   try {
-    // 1. ตรวจสอบว่า Email หรือ Username มีอยู่แล้วหรือไม่
-    const checkUser = await pool.query(
-      'SELECT id FROM users WHERE email = $1 OR username = $2', 
-      [normalizedEmail, username]
+    // ตรวจสอบ email ซ้ำ
+    const existing = await pool.query(
+      "SELECT id FROM users WHERE email = $1 OR username = $2",
+      [email, username],
     );
-    
-    if (checkUser.rows.length > 0) {
-      return res.status(400).json({ error: 'Email หรือ Username นี้มีในระบบแล้ว' });
+    if (existing.rows.length > 0) {
+      return res
+        .status(409)
+        .json({ error: "email หรือ username นี้มีอยู่แล้ว" });
     }
 
-    // 2. แฮชรหัสผ่าน (bcrypt) ก่อนบันทึกลงฐานข้อมูล
-    const passwordHash = await bcrypt.hash(password, 10);
+    const password_hash = await bcrypt.hash(password, 10);
+
     const result = await pool.query(
-      'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role',
-      [username, normalizedEmail, passwordHash, 'member']
+      `INSERT INTO users (username, email, password_hash, role)
+       VALUES ($1, $2, $3, 'member')
+       RETURNING id, username, email, role, created_at`,
+      [username, email, password_hash],
     );
 
-    const newUser = result.rows[0];
+    const user = result.rows[0];
+    await writeLog(
+      "info",
+      "register",
+      user.id,
+      `New user registered: ${email}`,
+    );
 
-    // 3. บันทึกความสำเร็จลง Log
-    await logEvent({
-      level: 'INFO',
-      event: 'REGISTER_SUCCESS',
-      userId: newUser.id,
-      message: `User ${newUser.username} registered successfully`,
-      meta: { email: newUser.email, ip }
+    return res.status(201).json({
+      message: "สมัครสมาชิกสำเร็จ",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
     });
-
-    res.status(201).json(newUser);
-
   } catch (err) {
-    console.error('[AUTH] Register error:', err.message);
-    await logEvent({
-      level: 'ERROR',
-      event: 'REGISTER_ERROR',
-      userId: null,
-      message: err.message,
-      meta: { email: normalizedEmail, ip }
-    });
-    res.status(500).json({ error: 'Server error' });
+    console.error("[register]", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// ─────────────────────────────────────────────
-// POST /api/auth/login
-// ─────────────────────────────────────────────
-router.post('/login', async (req, res) => {
+// ─── POST /api/auth/login ────────────────────────────────────────────────────
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  const ip = req.headers['x-real-ip'] || req.ip;
 
   if (!email || !password) {
-    return res.status(400).json({ error: 'กรุณากรอก email และ password' });
+    return res.status(400).json({ error: "email และ password จำเป็นต้องกรอก" });
   }
 
-  const normalizedEmail = String(email).trim().toLowerCase();
-
   try {
-    // 1. ค้นหาผู้ใช้จาก Email
-    const result = await pool.query(
-      'SELECT id, username, email, password_hash, role FROM users WHERE email = $1',
-      [normalizedEmail]
-    );
+    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
 
-    const user = result.rows[0] || null;
-
-    // 2. ตรวจสอบรหัสผ่านด้วย bcrypt.compare
-    const passwordHash = user ? user.password_hash : DUMMY_BCRYPT_HASH;
-    const isValid = await bcrypt.compare(password, passwordHash);
-
-    if (!user || !isValid) {
-      await logEvent({
-        level: 'WARN',
-        event: 'LOGIN_FAILED',
-        userId: user?.id || null,
-        message: `Login failed for: ${normalizedEmail}`,
-        meta: { email: normalizedEmail, ip }
-      });
-      return res.status(401).json({ error: 'Email หรือ Password ไม่ถูกต้อง' });
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: "email หรือ password ไม่ถูกต้อง" });
     }
 
-    // 3. อัปเดตเวลาเข้าใช้งานล่าสุด
-    await pool.query(
-      'UPDATE users SET last_login = NOW() WHERE id = $1',
-      [user.id]
-    );
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
 
-    // 4. สร้าง JWT Token โดยใช้ sub แทน user_id
-    const token = generateToken({
+    if (!match) {
+      await writeLog(
+        "warn",
+        "login_failed",
+        user.id,
+        `Failed login attempt: ${email}`,
+      );
+      return res.status(401).json({ error: "email หรือ password ไม่ถูกต้อง" });
+    }
+
+    // อัปเดต last_login
+    await pool.query("UPDATE users SET last_login = NOW() WHERE id = $1", [
+      user.id,
+    ]);
+
+    const token = signToken({
       sub: user.id,
       email: user.email,
+      username: user.username,
       role: user.role,
-      username: user.username
     });
 
-    await logEvent({
-      level: 'INFO',
-      event: 'LOGIN_SUCCESS',
-      userId: user.id,
-      message: `User ${user.username} logged in`,
-      meta: { username: user.username, role: user.role, ip }
-    });
+    await writeLog("info", "login", user.id, `User logged in: ${email}`);
 
-    res.json({
-      message: 'Login สำเร็จ',
+    return res.json({
+      message: "เข้าสู่ระบบสำเร็จ",
       token,
       user: {
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
-
   } catch (err) {
-    console.error('[AUTH] Login error:', err.message);
-    await logEvent({
-      level: 'ERROR',
-      event: 'LOGIN_ERROR',
-      userId: null,
-      message: err.message,
-      meta: { email: normalizedEmail, ip }
-    });
-    res.status(500).json({ error: 'Server error' });
+    console.error("[login]", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /api/auth/verify (ตรวจสอบความถูกต้องของ Token)
-// ─────────────────────────────────────────────
-router.get('/verify', (req, res) => {
-  const token = (req.headers['authorization'] || '').split(' ')[1];
-  if (!token) return res.status(401).json({ valid: false, error: 'No token' });
-
+// ─── GET /api/auth/me ────────────────────────────────────────────────────────
+router.get("/me", requireAuth, async (req, res) => {
   try {
-    const decoded = verifyToken(token);
-    res.json({ valid: true, user: decoded });
-  } catch (err) {
-    res.status(401).json({ valid: false, error: err.message });
-  }
-});
-
-// ─────────────────────────────────────────────
-// GET /api/auth/me (ดึงข้อมูลส่วนตัวจาก Token)
-// ─────────────────────────────────────────────
-router.get('/me', async (req, res) => {
-  const token = (req.headers['authorization'] || '').split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
-
-  try {
-    const decoded = verifyToken(token);
     const result = await pool.query(
-      'SELECT id, username, email, role, created_at, last_login FROM users WHERE id = $1',
-      [decoded.sub]
+      "SELECT id, username, email, role, created_at, last_login FROM users WHERE id = $1",
+      [req.user.sub],
     );
 
-    if (!result.rows[0]) {
-      return res.status(404).json({ error: 'User not found' });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({ user: result.rows[0] });
+    return res.json({ user: result.rows[0] });
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
+    console.error("[me]", err.message);
+    return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// ─────────────────────────────────────────────
-// GET /api/auth/health
-// ─────────────────────────────────────────────
-router.get('/health', (_, res) => {
-  res.json({
-    status: 'ok',
-    service: 'auth-service',
-    time: new Date()
-  });
+// ─── GET /api/auth/verify ────────────────────────────────────────────────────
+// ใช้สำหรับ service อื่นตรวจสอบ token (optional internal use)
+router.get("/verify", requireAuth, (req, res) => {
+  return res.json({ valid: true, user: req.user });
+});
+
+// ─── GET /api/auth/health ────────────────────────────────────────────────────
+router.get("/health", async (req, res) => {
+  try {
+    await pool.query("SELECT 1");
+    return res.json({ status: "ok", service: "auth-service", db: "connected" });
+  } catch (err) {
+    return res.status(503).json({ status: "error", db: err.message });
+  }
 });
 
 module.exports = router;

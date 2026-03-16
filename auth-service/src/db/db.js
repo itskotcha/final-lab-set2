@@ -1,8 +1,15 @@
 const { Pool } = require("pg");
 
 const pool = new Pool({
-  // ใช้ DATABASE_URL เป็นหลักตามข้อกำหนดของ Set 2 (Railway & Docker)
-  connectionString: process.env.DATABASE_URL || "postgres://admin:secret@localhost:5433/authdb",
+  connectionString: process.env.DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
-module.exports = { pool };
+pool.on("error", (err) => {
+  console.error("[auth-db] unexpected error:", err.message);
+});
+
+module.exports = pool;

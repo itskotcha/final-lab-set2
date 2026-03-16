@@ -1,11 +1,11 @@
 // ===== config.js =====
 // ตั้งค่า URL ของแต่ละ service ที่นี่
-// เปลี่ยนเป็น Railway URL จริงเมื่อ deploy
+// ทุก request ผ่าน Nginx gateway (port 8080) เสมอ
 
 const CONFIG = {
-  AUTH_SERVICE_URL: window.ENV_AUTH_URL || "http://localhost:3001",
-  TASK_SERVICE_URL: window.ENV_TASK_URL || "http://localhost:3002",
-  USER_SERVICE_URL: window.ENV_USER_URL || "http://localhost:3003",
+  AUTH_SERVICE_URL: window.ENV_AUTH_URL || "http://localhost:8080",
+  TASK_SERVICE_URL: window.ENV_TASK_URL || "http://localhost:8080",
+  USER_SERVICE_URL: window.ENV_USER_URL || "http://localhost:8080",
 };
 
 // ============================================================
