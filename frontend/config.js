@@ -3,9 +3,9 @@
 // ทุก request ผ่าน Nginx gateway (port 8080) เสมอ
 
 const CONFIG = {
-  AUTH_SERVICE_URL: window.ENV_AUTH_URL || "http://localhost:8080",
-  TASK_SERVICE_URL: window.ENV_TASK_URL || "http://localhost:8080",
-  USER_SERVICE_URL: window.ENV_USER_URL || "http://localhost:8080",
+  AUTH_SERVICE_URL: window.location.origin,
+  TASK_SERVICE_URL: window.location.origin,
+  USER_SERVICE_URL: window.location.origin,
 };
 
 // ============================================================
