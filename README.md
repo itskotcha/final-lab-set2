@@ -296,4 +296,4 @@ curl -sk $BASE/api/tasks/ -H "Authorization: Bearer $TOKEN"
 
 ---
 
-> เอกสารฉบับนี้เป็น README สำหรับงาน Final Lab Set 1 ของกลุ่ม และจัดทำเพื่อประกอบการส่งงานในรายวิชา ENGSE207 Software Architecture
+> เอกสารฉบับนี้เป็น README สำหรับงาน Final Lab Set 1 ของกลุ่ม และจัดทำเพื่อประกอบการส่งงานในรายวิชา ENGSE207 Software Architecture# Final Lab Set 2
