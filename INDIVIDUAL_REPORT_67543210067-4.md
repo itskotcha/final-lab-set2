@@ -1,61 +1,34 @@
 # INDIVIDUAL_REPORT_67543210067-4.md
 
 ## ข้อมูลผู้จัดทำ
+- ชื่อ-นามสกุล: นางสาว กชพร วงศ์ใหญ่
+- รหัสนักศึกษา: 67543210067-4
+- กลุ่ม: 09
 
-ชื่อ: นางสาวกชพร วงศ์ใหญ่
-รหัสนักศึกษา: 67543210067-4
+## ขอบเขตงานที่รับผิดชอบ
+- พัฒนา Backend ของ Auth Service และ Task Service
+- การตั้งค่า Database ของแต่ละ Service
+- เขียน API และจัดการ Security เช่น JWT, Password Hashing
+- พัฒนา Frontend หน้า Login, Register, Task Board และ Profile
+- Integration ระหว่าง Backend Services และ Frontend
 
----
-
-## ส่วนที่รับผิดชอบ
-* ดูแลและจัดการส่วน Infrastructure ของแอปพลิเคชันโดยใช้ Docker
-
-* เชื่อมต่อและตั้งค่าการทำงานร่วมกันของ Microservices ต่างๆ (เช่น auth-service, task-service, log-service, frontend)
-
-* ตั้งค่า Web Server และ Reverse Proxy โดยใช้ Nginx รวมถึงการจัดการเรื่องความปลอดภัยเบื้องต้น (HTTPS)
-
-* จัดการระบบฐานข้อมูล PostgreSQL และ Database Initialization Script
-
-
----
-
-## สิ่งที่ได้ลงมือพัฒนาด้วยตนเอง
-* เขียนและปรับแต่งไฟล์ docker-compose.yml เพื่อให้คอนเทนเนอร์ทั้งหมดทำงานร่วมกันในเครือข่ายเดียวกันได้อย่างสมบูรณ์
-
-* ตั้งค่าไฟล์ nginx.conf เพื่อกำหนด Routing การทำงานของ Reverse Proxy ไปยัง Service ต่างๆ
-
-* สร้างและคอนฟิก Self-signed certificates เพื่อเปิดใช้งาน HTTPS ให้กับโปรเจกต์
-
-* จัดการไฟล์ init.sql เพื่อเตรียมโครงสร้างข้อมูลเบื้องต้นให้กับฐานข้อมูล PostgreSQL
-
----
+## สิ่งที่ได้ดำเนินการด้วยตนเอง
+- สร้างและตั้งค่า Database ของ Auth Service และ Task Service แยกกัน
+- เขียน API สำหรับการ login, register, CRUD Task และ JWT verification
+- พัฒนา Frontend ให้สามารถเชื่อมต่อ API ทั้ง Auth และ Task Service
+- Implement Task filtering, Task editing และ Task deletion
+- Integration ระหว่าง Frontend, Auth Service และ Task Service ให้ทำงานร่วมกันได้
+- Testing และ debugging ของทั้ง backend และ frontend พร้อมตรวจสอบ JWT flow และ error handling
 
 ## ปัญหาที่พบและวิธีการแก้ไข
-### ปัญหาที่ 1
-* **ปัญหา:** พบปัญหาการเชื่อมต่อระหว่างคอนเทนเนอร์ในช่วงแรก เช่น Service พยายามเชื่อมต่อฐานข้อมูลก่อนที่ PostgreSQL จะพร้อมทำงาน (Database Connection Refused)
-* **วิธีการแก้ไข:** ปรับปรุงไฟล์ Docker Compose โดยใช้คำสั่ง depends_on (หรือเพิ่ม healthcheck) เพื่อกำหนดลำดับการสตาร์ทคอนเทนเนอร์ให้ถูกต้อง
-
-### ปัญหาที่ 2
-* **ปัญหา:** การตั้งค่า Nginx ให้รองรับ HTTPS มีข้อผิดพลาดจาก Path ของ Certificate
-* **วิธีการแก้ไข:** ตรวจสอบและแก้ไขการ Mount Volume ใน Docker Compose เพื่อให้ Nginx ภายในคอนเทนเนอร์มองเห็นไฟล์ Certificate ที่ถูกต้อง
-
----
+- **ปัญหา:** Task Service 500 error เนื่องจาก DB connection ไม่พร้อม  
+  **วิธีแก้ไข:** ตรวจสอบ Database URL และ environment variables ของ Task Service ให้ถูกต้อง
+- **ปัญหา:** Frontend ไม่แสดงข้อมูล Task  
+  **วิธีแก้ไข:** ปรับ API URL และเรียก JWT token จาก localStorage ให้ถูกต้อง
 
 ## สิ่งที่ได้เรียนรู้จากงานนี้
-* เข้าใจภาพรวมการทำงานและข้อดีของสถาปัตยกรรมแบบ Microservices อย่างเป็นรูปธรรมมากขึ้น
-
-* ได้เรียนรู้ทักษะการใช้ Docker และ Docker Compose ในการจัดการ Service หลายตัวพร้อมกัน ซึ่งช่วยให้การจำลองสภาพแวดล้อม (Environment) ง่ายและเสถียรขึ้น
-
-* ได้เรียนรู้หลักการทำงานของ Reverse Proxy ผ่าน Nginx และการเข้ารหัสข้อมูลเบื้องต้นด้วยการตั้งค่า SSL/HTTPS ในสภาพแวดล้อมการพัฒนา
-
-* ได้ฝึกทักษะการแก้ปัญหา (Troubleshooting) จากการอ่าน Docker Logs เพื่อหาสาเหตุของ Error ต่างๆ
-
----
-
-## แนวทางที่ต้องการพัฒนาต่อใน Set 2
-* ต้องการปรับปรุงกระบวนการสร้าง Docker Image (Dockerfile) ให้มีขนาดเล็กลงและมีความปลอดภัยมากขึ้น (Optimize & Hardening)
-
-* สนใจเพิ่มระบบ Centralized Logging และ Monitoring (เช่น Prometheus หรือ Grafana) เพื่อให้ติดตามการทำงานของแต่ละ Service ได้ง่ายขึ้น
-
-* เพิ่มการเขียน Test อัตโนมัติ หรือเริ่มต้นวางระบบ CI/CD Pipeline เบื้องต้น เพื่อให้การอัปเดตโค้ดในอนาคตราบรื่นกว่าเดิม
+- การแยก Service ทำให้การพัฒนา Backend เป็นอิสระและง่ายต่อการทดสอบ
+- การจัดการ JWT และสิทธิ์ผู้ใช้งานเป็นสิ่งสำคัญต่อ security ของระบบ
+- การ integrate frontend กับ backend ต้องเข้าใจทั้ง API endpoints และ authorization
+- การ debug ระบบ microservices ต้องตรวจสอบทั้ง Service, Database และ Frontend ร่วมกัน
 
