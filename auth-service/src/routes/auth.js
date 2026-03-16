@@ -5,10 +5,10 @@ const { generateToken, verifyToken } = require('../middleware/jwtUtils');
 
 const router = express.Router();
 
-// bcrypt hash ที่ valid จริง ใช้สำหรับ timing-safe compare กรณีไม่พบ user
+// bcrypt hash ที่ใช้สำหรับ timing-safe compare กรณีไม่พบ user ในระบบ
 const DUMMY_BCRYPT_HASH = '$2b$10$CwTycUXWue0Thq9StjUM0uJ8y0R6VQwWi4KFOeFHrgb3R04QLbL7a';
 
-// ── Helper: บันทึก log ลง auth-db โดยตรง (Set 2) ────────────────────────────────
+// ── Helper: ฟังก์ชันบันทึก log ลงตาราง logs ใน auth-db ──
 async function logEvent({ level, event, userId, message, meta = {} }) {
   try {
     await pool.query(
@@ -21,7 +21,7 @@ async function logEvent({ level, event, userId, message, meta = {} }) {
 }
 
 // ─────────────────────────────────────────────
-// POST /api/auth/register (เพิ่มตามข้อกำหนด Set 2)
+// POST /api/auth/register
 // ─────────────────────────────────────────────
 router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
@@ -34,7 +34,7 @@ router.post('/register', async (req, res) => {
   const normalizedEmail = String(email).trim().toLowerCase();
 
   try {
-    // 1. ตรวจสอบว่ามีผู้ใช้นี้อยู่แล้วหรือไม่
+    // 1. ตรวจสอบว่า Email หรือ Username มีอยู่แล้วหรือไม่
     const checkUser = await pool.query(
       'SELECT id FROM users WHERE email = $1 OR username = $2', 
       [normalizedEmail, username]
@@ -44,7 +44,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Email หรือ Username นี้มีในระบบแล้ว' });
     }
 
-    // 2. แฮชรหัสผ่านและบันทึกผู้ใช้ใหม่
+    // 2. แฮชรหัสผ่าน (bcrypt) ก่อนบันทึกลงฐานข้อมูล
     const passwordHash = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role',
@@ -53,7 +53,7 @@ router.post('/register', async (req, res) => {
 
     const newUser = result.rows[0];
 
-    // 3. บันทึก Log ลง auth-db ทันทีผ่านฟังก์ชัน Helper
+    // 3. บันทึกความสำเร็จลง Log
     await logEvent({
       level: 'INFO',
       event: 'REGISTER_SUCCESS',
@@ -66,7 +66,6 @@ router.post('/register', async (req, res) => {
 
   } catch (err) {
     console.error('[AUTH] Register error:', err.message);
-
     await logEvent({
       level: 'ERROR',
       event: 'REGISTER_ERROR',
@@ -74,7 +73,6 @@ router.post('/register', async (req, res) => {
       message: err.message,
       meta: { email: normalizedEmail, ip }
     });
-
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -93,6 +91,7 @@ router.post('/login', async (req, res) => {
   const normalizedEmail = String(email).trim().toLowerCase();
 
   try {
+    // 1. ค้นหาผู้ใช้จาก Email
     const result = await pool.query(
       'SELECT id, username, email, password_hash, role FROM users WHERE email = $1',
       [normalizedEmail]
@@ -100,7 +99,7 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0] || null;
 
-    // Timing attack prevention
+    // 2. ตรวจสอบรหัสผ่านด้วย bcrypt.compare
     const passwordHash = user ? user.password_hash : DUMMY_BCRYPT_HASH;
     const isValid = await bcrypt.compare(password, passwordHash);
 
@@ -112,17 +111,16 @@ router.post('/login', async (req, res) => {
         message: `Login failed for: ${normalizedEmail}`,
         meta: { email: normalizedEmail, ip }
       });
-
       return res.status(401).json({ error: 'Email หรือ Password ไม่ถูกต้อง' });
     }
 
-    // อัปเดต last_login
+    // 3. อัปเดตเวลาเข้าใช้งานล่าสุด
     await pool.query(
       'UPDATE users SET last_login = NOW() WHERE id = $1',
       [user.id]
     );
 
-    // สร้าง JWT โดยใช้ sub อ้างอิง id ผู้ใช้ตามข้อกำหนด Set 2
+    // 4. สร้าง JWT Token โดยใช้ sub แทน user_id
     const token = generateToken({
       sub: user.id,
       email: user.email,
@@ -151,7 +149,6 @@ router.post('/login', async (req, res) => {
 
   } catch (err) {
     console.error('[AUTH] Login error:', err.message);
-
     await logEvent({
       level: 'ERROR',
       event: 'LOGIN_ERROR',
@@ -159,13 +156,12 @@ router.post('/login', async (req, res) => {
       message: err.message,
       meta: { email: normalizedEmail, ip }
     });
-
     res.status(500).json({ error: 'Server error' });
   }
 });
 
 // ─────────────────────────────────────────────
-// GET /api/auth/verify
+// GET /api/auth/verify (ตรวจสอบความถูกต้องของ Token)
 // ─────────────────────────────────────────────
 router.get('/verify', (req, res) => {
   const token = (req.headers['authorization'] || '').split(' ')[1];
@@ -180,7 +176,7 @@ router.get('/verify', (req, res) => {
 });
 
 // ─────────────────────────────────────────────
-// GET /api/auth/me (ต้องมี JWT)
+// GET /api/auth/me (ดึงข้อมูลส่วนตัวจาก Token)
 // ─────────────────────────────────────────────
 router.get('/me', async (req, res) => {
   const token = (req.headers['authorization'] || '').split(' ')[1];
