@@ -1,21 +1,25 @@
 const jwt = require("jsonwebtoken");
 
 function authMiddleware(req, res, next) {
-
   const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
-    return res.status(401).json({ error: "No token" });
+  // ตรวจสอบว่ามี Header และขึ้นต้นด้วย Bearer หรือไม่
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
   }
 
   const token = authHeader.split(" ")[1];
 
   try {
+    // ใช้ Secret จาก Environment ที่ตั้งไว้ใน docker-compose (dev-shared-secret)
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    
+    // เก็บข้อมูล user ไว้ใน request เพื่อให้ route อื่นๆ ใช้งานต่อได้
+    req.user = decoded; 
     next();
-  } catch {
-    res.status(401).json({ error: "Invalid token" });
+  } catch (err) {
+    // ตอบกลับตามประเภทความผิดพลาดของ Token เช่น Expired หรือ Invalid
+    res.status(401).json({ error: "Unauthorized: " + err.message });
   }
 }
 
