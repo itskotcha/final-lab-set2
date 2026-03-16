@@ -1,6 +1,10 @@
 services:
+
+  # ── Databases ────────────────────────────────────────────────────────────────
+
   auth-db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_DB: authdb
       POSTGRES_USER: admin
@@ -8,10 +12,17 @@ services:
     ports:
       - "5433:5432"
     volumes:
+      - auth-db-data:/var/lib/postgresql/data
       - ./auth-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   task-db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_DB: taskdb
       POSTGRES_USER: admin
@@ -19,10 +30,17 @@ services:
     ports:
       - "5434:5432"
     volumes:
+      - task-db-data:/var/lib/postgresql/data
       - ./task-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d taskdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   user-db:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_DB: userdb
       POSTGRES_USER: admin
@@ -30,10 +48,19 @@ services:
     ports:
       - "5435:5432"
     volumes:
+      - user-db-data:/var/lib/postgresql/data
       - ./user-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d userdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Services ─────────────────────────────────────────────────────────────────
 
   auth-service:
     build: ./auth-service
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgres://admin:secret@auth-db:5432/authdb
       JWT_SECRET: dev-shared-secret
@@ -43,10 +70,12 @@ services:
     ports:
       - "3001:3001"
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
 
   task-service:
     build: ./task-service
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgres://admin:secret@task-db:5432/taskdb
       JWT_SECRET: dev-shared-secret
@@ -55,10 +84,12 @@ services:
     ports:
       - "3002:3002"
     depends_on:
-      - task-db
+      task-db:
+        condition: service_healthy
 
   user-service:
     build: ./user-service
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgres://admin:secret@user-db:5432/userdb
       JWT_SECRET: dev-shared-secret
@@ -67,4 +98,28 @@ services:
     ports:
       - "3003:3003"
     depends_on:
-      - user-db
+      user-db:
+        condition: service_healthy
+
+  # ── Frontend (optional) ──────────────────────────────────────────────────────
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_URL: http://localhost:3001
+      TASK_SERVICE_URL: http://localhost:3002
+      USER_SERVICE_URL: http://localhost:3003
+    ports:
+      - "8080:80"
+    depends_on:
+      - auth-service
+      - task-service
+      - user-service
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+
+volumes:
+  auth-db-data:
+  task-db-data:
+  user-db-data:
