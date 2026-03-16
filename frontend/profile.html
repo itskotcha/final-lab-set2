@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Profile — Task Board</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap"
+        rel="stylesheet" />
+    <script src="env.js"></script>
+    <script src="config.js"></script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        :root {
+            --bg: #f5f0e8;
+            --sidebar: #ede8df;
+            --surface: #faf7f2;
+            --surface2: #f0ebe1;
+            --border: #ddd5c4;
+            --accent: #8b6f47;
+            --accent2: #a68b5b;
+            --green: #6b8f71;
+            --danger: #a0522d;
+            --warn: #c49a3c;
+            --text: #2c2416;
+            --muted: #8a7760;
+            --font: 'Sarabun', sans-serif;
+            --display: 'Cormorant Garamond', serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(ellipse at 0% 0%, rgba(196,170,130,.18) 0%, transparent 55%),
+                radial-gradient(ellipse at 100% 100%, rgba(160,145,110,.12) 0%, transparent 50%);
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ─── Sidebar ─── */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            overflow-y: auto;
+            background: var(--sidebar);
+            border-right: 1.5px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            box-shadow: 2px 0 18px rgba(100,80,40,.07);
+        }
+
+        .sb-brand {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            padding: 1.3rem 1.2rem 1rem;
+            border-bottom: 1.5px solid var(--border);
+        }
+
+        .sb-brand-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .05em;
+            flex-shrink: 0;
+        }
+
+        .sb-brand-name {
+            font-family: var(--display);
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: .03em;
+        }
+
+        .sb-nav {
+            padding: .75rem .6rem;
+            flex: 1;
+        }
+
+        .sb-item {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            padding: .65rem .85rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: .88rem;
+            font-weight: 500;
+            color: var(--muted);
+            transition: all .2s;
+            text-decoration: none;
+            margin-bottom: .2rem;
+        }
+
+        .sb-item:hover {
+            background: var(--surface2);
+            color: var(--text);
+        }
+
+        .sb-item.active {
+            background: rgba(139,111,71,.1);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .sb-item-icon {
+            font-size: .95rem;
+            width: 22px;
+            text-align: center;
+            opacity: .75;
+        }
+
+        .sb-footer {
+            padding: 1rem;
+            border-top: 1.5px solid var(--border);
+        }
+
+        .sb-user {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+        }
+
+        .sb-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            font-size: .85rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(100,70,30,.2);
+        }
+
+        .sb-uname {
+            font-size: .85rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .sb-role-badge {
+            display: inline-block;
+            font-size: .6rem;
+            font-weight: 700;
+            padding: .1rem .4rem;
+            border-radius: 4px;
+            background: rgba(139,111,71,.12);
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .sb-role-badge.admin {
+            background: rgba(196,154,60,.15);
+            color: var(--warn);
+        }
+
+        .sb-logout {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: .9rem;
+            padding: .2rem;
+            transition: color .2s;
+        }
+
+        .sb-logout:hover { color: var(--danger); }
+
+        /* ─── Main ─── */
+        .main {
+            flex: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .main-header {
+            padding: 1.5rem 2rem 1rem;
+            border-bottom: 1.5px solid var(--border);
+            background: rgba(250,247,242,.85);
+            backdrop-filter: blur(8px);
+        }
+
+        .main-header-sub {
+            font-size: .65rem;
+            color: var(--muted);
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            margin-bottom: .15rem;
+        }
+
+        .main-title {
+            font-family: var(--display);
+            font-size: 1.55rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: .01em;
+        }
+
+        .main-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        /* ─── Cards ─── */
+        .card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            padding: 1.6rem;
+            margin-bottom: 1.4rem;
+            box-shadow: 0 2px 16px rgba(100,80,40,.06);
+        }
+
+        .profile-top {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1.5px solid var(--border);
+            margin-bottom: 1.4rem;
+        }
+
+        .p-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: grid;
+            place-items: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 3px 12px rgba(100,70,30,.22);
+        }
+
+        .p-name {
+            font-family: var(--display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: .3rem;
+        }
+
+        .p-role {
+            display: inline-block;
+            font-size: .62rem;
+            font-weight: 700;
+            padding: .15rem .6rem;
+            border-radius: 20px;
+            background: rgba(139,111,71,.1);
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+        }
+
+        .p-role.admin {
+            background: rgba(196,154,60,.15);
+            color: var(--warn);
+        }
+
+        .section-label {
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .fg { margin-bottom: 1rem; }
+
+        .fg label {
+            display: block;
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: .35rem;
+        }
+
+        .fg input,
+        .fg textarea {
+            width: 100%;
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+            padding: .65rem 1rem;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: .88rem;
+            outline: none;
+            transition: all .2s;
+        }
+
+        .fg input:focus,
+        .fg textarea:focus {
+            border-color: var(--accent);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(139,111,71,.1);
+        }
+
+        .fg input:disabled {
+            opacity: .45;
+            background: var(--bg);
+        }
+
+        .fg textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: .78rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: .9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s;
+            letter-spacing: .04em;
+            box-shadow: 0 3px 12px rgba(100,70,30,.2);
+        }
+
+        .btn-save:hover {
+            background: var(--accent2);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 16px rgba(100,70,30,.28);
+        }
+
+        .btn-save:disabled {
+            opacity: .5;
+            transform: none;
+        }
+
+        .msg {
+            margin-top: .75rem;
+            padding: .55rem 1rem;
+            border-radius: 9px;
+            font-size: .78rem;
+            display: none;
+        }
+
+        .msg.err {
+            background: rgba(160,82,45,.07);
+            border: 1.5px solid var(--danger);
+            color: var(--danger);
+            display: block;
+        }
+
+        .msg.ok {
+            background: rgba(107,143,113,.08);
+            border: 1.5px solid var(--green);
+            color: var(--green);
+            display: block;
+        }
+
+        .jwt-box {
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 9px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: .68rem;
+            color: var(--accent2);
+            word-break: break-all;
+            line-height: 1.7;
+            margin-bottom: .75rem;
+        }
+
+        .btn-copy {
+            padding: .42rem 1rem;
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            font-family: var(--font);
+            font-size: .78rem;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-copy:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .admin-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 16px rgba(100,80,40,.06);
+        }
+
+        .admin-card-hdr {
+            padding: 1rem 1.4rem;
+            border-bottom: 1.5px solid var(--border);
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            background: var(--surface2);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            padding: .7rem 1.1rem;
+            font-size: .65rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-align: left;
+            border-bottom: 1.5px solid var(--border);
+            background: var(--surface2);
+        }
+
+        td {
+            padding: .7rem 1.1rem;
+            font-size: .83rem;
+            border-bottom: 1px solid rgba(221,213,196,.4);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(139,111,71,.03); }
+
+        .badge {
+            display: inline-block;
+            font-size: .6rem;
+            font-weight: 700;
+            padding: .18rem .55rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        .b-admin { background: rgba(196,154,60,.15); color: var(--warn); }
+        .b-member { background: rgba(139,111,71,.1); color: var(--accent); }
+
+        /* scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 20px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent2); }
+        * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+        .inner {
+            padding: 1.6rem 2rem;
+            max-width: 600px;
+        }
+
+        .avatar-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .avatar-upload:hover .avatar-overlay { opacity: 1; }
+
+        .avatar-overlay {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: rgba(100,70,30,.45);
+            display: grid;
+            place-items: center;
+            opacity: 0;
+            transition: opacity .2s;
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .avatar-input { display: none; }
+
+        .avatar-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            box-shadow: 0 3px 12px rgba(100,70,30,.22);
+        }
+
+        .hidden { display: none !important; }
+
+        .spin {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: sp .5s linear infinite;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        @keyframes sp { to { transform: rotate(360deg) } }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="sidebar">
+            <div class="sb-brand">
+                <div class="sb-brand-icon">TB</div>
+                <span class="sb-brand-name">Task Board</span>
+            </div>
+            <nav class="sb-nav">
+                <a class="sb-item" href="index.html">
+                    <span class="sb-item-icon">✓</span> Tasks
+                </a>
+                <a class="sb-item active">
+                    <span class="sb-item-icon">◎</span> Profile &amp; JWT
+                </a>
+            </nav>
+            <div class="sb-footer">
+                <div class="sb-user">
+                    <div class="sb-avatar" id="sb-av">?</div>
+                    <div>
+                        <div class="sb-uname" id="sb-name">-</div>
+                        <span class="sb-role-badge" id="sb-role">member</span>
+                    </div>
+                    <button class="sb-logout" onclick="doLogout()" title="ออกจากระบบ">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <div class="main-header">
+                <div class="main-header-sub">Account</div>
+                <div class="main-title">Profile &amp; JWT</div>
+            </div>
+            <div class="main-body">
+                <div class="inner">
+
+                    <div class="card">
+                        <div class="profile-top">
+                            <label class="avatar-upload" title="คลิกเพื่อเปลี่ยนรูป">
+                                <img id="p-av-img" class="avatar-preview" src="" style="display:none" />
+                                <div class="p-avatar" id="p-av" style="display:grid">?</div>
+                                <div class="avatar-overlay">&#x1F4F7;</div>
+                                <input type="file" class="avatar-input" id="avatar-file" accept="image/*"
+                                    onchange="onAvatarFile(event)" />
+                            </label>
+                            <div>
+                                <div class="p-name" id="p-name">-</div>
+                                <span class="p-role" id="p-role">member</span>
+                            </div>
+                        </div>
+
+                        <div class="section-label">Edit Profile</div>
+
+                        <div class="fg">
+                            <label>Display Name</label>
+                            <input id="p-display" placeholder="ชื่อที่แสดง" />
+                        </div>
+                        <div class="fg">
+                            <label>Bio</label>
+                            <textarea id="p-bio" placeholder="แนะนำตัวสั้นๆ…"></textarea>
+                        </div>
+                        <div class="fg" id="avatar-url-group">
+                            <label>Avatar URL <span style="font-size:.65rem;color:var(--muted)">(หรืออัปโหลดรูปด้านบน)</span></label>
+                            <input id="p-avatar" type="url" placeholder="https://…" />
+                        </div>
+                        <div class="fg">
+                            <label>Username (แก้ไขไม่ได้)</label>
+                            <input id="p-uname" disabled />
+                        </div>
+                        <div class="fg">
+                            <label>Email (แก้ไขไม่ได้)</label>
+                            <input id="p-email" disabled />
+                        </div>
+
+                        <button class="btn-save" id="save-btn" onclick="saveProfile()">บันทึกการเปลี่ยนแปลง</button>
+                        <div class="msg" id="p-msg"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="section-label">JWT Token</div>
+                        <div class="jwt-box" id="jwt-box">-</div>
+                        <button class="btn-copy" onclick="copyJwt()">คัดลอก Token</button>
+                    </div>
+
+                    <div class="admin-card hidden" id="admin-card">
+                        <div class="admin-card-hdr">Admin — รายชื่อผู้ใช้ทั้งหมด</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-tbody">
+                                <tr>
+                                    <td colspan="4" style="text-align:center;padding:1.5rem;color:var(--muted)">กำลังโหลด…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (async () => {
+            const token = getToken();
+            if (!token) { location.href = '/index.html'; return; }
+            document.getElementById('jwt-box').textContent = token;
+            try {
+                const d = await apiFetch(`${CONFIG.USER_SERVICE_URL}/api/users/me`);
+                const p = d.profile || d;
+                renderProfile(p);
+                if (p.role === 'admin') {
+                    document.getElementById('admin-card').classList.remove('hidden');
+                    loadUsers();
+                }
+            } catch (e) { location.href = '/index.html'; }
+        })();
+
+        function onAvatarFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) { alert('รูปต้องไม่เกิน 2MB'); return; }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const base64 = ev.target.result;
+                document.getElementById('p-av-img').src = base64;
+                document.getElementById('p-av-img').style.display = 'block';
+                document.getElementById('p-av').style.display = 'none';
+                document.getElementById('p-avatar').value = base64;
+                document.getElementById('avatar-url-group').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderProfile(p) {
+            const name = p.display_name || p.username || 'User';
+            ['sb-av', 'p-av'].forEach(id => document.getElementById(id).textContent = name.charAt(0).toUpperCase());
+            document.getElementById('sb-name').textContent = name;
+            document.getElementById('p-name').textContent = name;
+            const pr = document.getElementById('p-role');
+            pr.textContent = p.role || 'member';
+            pr.className = 'p-role' + (p.role === 'admin' ? ' admin' : '');
+            const sr = document.getElementById('sb-role');
+            sr.textContent = p.role || 'member';
+            sr.className = 'sb-role-badge' + (p.role === 'admin' ? ' admin' : '');
+            const grp = document.getElementById('avatar-url-group');
+            if (p.avatar_url && p.avatar_url.startsWith('data:')) {
+                grp.style.display = 'none';
+            } else {
+                grp.style.display = 'block';
+            }
+            if (p.avatar_url) {
+                const img = document.getElementById('p-av-img');
+                img.src = p.avatar_url;
+                img.style.display = 'block';
+                document.getElementById('p-av').style.display = 'none';
+            }
+            document.getElementById('p-display').value = p.display_name || '';
+            document.getElementById('p-bio').value = p.bio || '';
+            document.getElementById('p-avatar').value = p.avatar_url || '';
+            document.getElementById('p-uname').value = p.username || '';
+            document.getElementById('p-email').value = p.email || '';
+        }
+
+        async function saveProfile() {
+            const btn = document.getElementById('save-btn'), msg = document.getElementById('p-msg');
+            msg.className = 'msg';
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spin"></span>กำลังบันทึก…';
+            try {
+                const d = await apiFetch(`${CONFIG.USER_SERVICE_URL}/api/users/me`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        display_name: document.getElementById('p-display').value.trim(),
+                        bio: document.getElementById('p-bio').value.trim(),
+                        avatar_url: document.getElementById('p-avatar').value.trim(),
+                    })
+                });
+                renderProfile(d.profile || d);
+                msg.className = 'msg ok';
+                msg.textContent = 'บันทึกสำเร็จ';
+            } catch (e) {
+                msg.className = 'msg err';
+                msg.textContent = e.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'บันทึกการเปลี่ยนแปลง';
+            }
+        }
+
+        async function loadUsers() {
+            const tbody = document.getElementById('user-tbody');
+            try {
+                const d = await apiFetch(`${CONFIG.USER_SERVICE_URL}/api/users`);
+                const users = Array.isArray(d) ? d : (d.users || []);
+                tbody.innerHTML = users.map(u => `<tr>
+                    <td style="color:var(--muted)">${u.user_id || u.id}</td>
+                    <td style="font-weight:600">${u.username || '-'}</td>
+                    <td style="color:var(--muted)">${u.email || '-'}</td>
+                    <td><span class="badge b-${u.role || 'member'}">${u.role || 'member'}</span></td>
+                </tr>`).join('');
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:var(--danger);text-align:center;padding:1rem">${e.message}</td></tr>`;
+            }
+        }
+
+        function copyJwt() {
+            navigator.clipboard.writeText(getToken() || '').then(() => alert('คัดลอก Token แล้ว'));
+        }
+
+        function doLogout() { removeToken(); location.href = '/index.html'; }
+    </script>
+</body>
+
+</html>
