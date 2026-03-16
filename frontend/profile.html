@@ -519,7 +519,7 @@
         <td style="color:var(--muted)">${u.user_id || u.id}</td>
         <td style="font-weight:800">${u.username || '-'}</td>
         <td style="color:var(--muted)">${u.email || '-'}</td>
-        <td><span class="badge b-${u.role || 'member'}">${u.role || 'member'}</span></td>
+        <td><span class="badge b-${u.role === 'admin' ? 'admin' : 'member'}">${u.role || 'member'}</span></td>
       </tr>`).join('');
 
     } catch (e) {
