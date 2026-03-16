@@ -23,10 +23,8 @@ CREATE TABLE IF NOT EXISTS logs (
 -- ล้างข้อมูลเก่าเพื่อให้แน่ใจว่า Seed Data จะถูกนำเข้าใหม่
 TRUNCATE TABLE users RESTART IDENTITY CASCADE;
 
--- เพิ่มข้อมูล Seed Users
--- รหัสผ่านคือ 'alice123', 'bob456', 'adminpass' ตามลำดับ
--- (หมายเหตุ: ค่าเหล่านี้เป็น bcrypt hash ที่ระบบตรวจสอบผ่าน)
+-- เพิ่มข้อมูล Seed Users ด้วย Hash จริงที่คุณสร้างมา
 INSERT INTO users (username, email, password_hash, role) VALUES 
-('alice', 'alice@lab.local', '$2b$10$7qYkG.00p8H.E/L.S.S.S.O.S.S.S.S.S.S.S.S.S.S.S.S.S.S.S.S.', 'member'),
-('bob', 'bob@lab.local', '$2b$10$7qYkG.01p8H.E/L.S.S.S.O.S.S.S.S.S.S.S.S.S.S.S.S.S.S.S.S.', 'member'),
-('admin', 'admin@lab.local', '$2b$10$7qYkG.02p8H.E/L.S.S.S.O.S.S.S.S.S.S.S.S.S.S.S.S.S.S.S.S.', 'admin');
+('alice', 'alice@lab.local', '$2a$10$KGY9/BHZiSzS37tFbEWnMeCT1hrP2GlnX52iM0R6mPbwV6J0SV/nq', 'member'),
+('bob', 'bob@lab.local', '$2a$10$BYDW9y7twKJAAvu.sy7Okun9.NzqaSZ2QDy0hNrbHLiA5LwQxTI6m', 'member'),
+('admin', 'admin@lab.local', '$2a$10$vwiTlJo8pCVfIEHZfkGdI.jf9RsC1YNM61sAWGpyu.I1oyoD/Ije.', 'admin');
