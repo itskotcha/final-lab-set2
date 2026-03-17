@@ -1,9 +1,12 @@
-# INDIVIDUAL_REPORT_67543210067-4.md
+# INDIVIDUAL_REPORT.md
+
+## INDIVIDUAL_REPORT_67543210067-4
+
+## กลุ่มที่: 09
 
 ## ข้อมูลผู้จัดทำ
 - ชื่อ-นามสกุล: นางสาว กชพร วงศ์ใหญ่
 - รหัสนักศึกษา: 67543210067-4
-- กลุ่ม: 09
 
 ## ขอบเขตงานที่รับผิดชอบ
 - พัฒนา Backend ของ Auth Service และ Task Service
@@ -32,12 +35,11 @@
 - การ integrate frontend กับ backend ต้องเข้าใจทั้ง API endpoints และ authorization
 - การ debug ระบบ microservices ต้องตรวจสอบทั้ง Service, Database และ Frontend ร่วมกัน
 
-# INDIVIDUAL_REPORT_67543210027-8.md
+## INDIVIDUAL_REPORT_67543210027-8
 
 ## ข้อมูลผู้จัดทำ
 - ชื่อ-นามสกุล: นางสาว ดาวประกาย เสาร์สิงห์
 - รหัสนักศึกษา: 67543210027-8
-- กลุ่ม: 09
 
 ## ขอบเขตงานที่รับผิดชอบ
 - Deployment ของทั้งระบบบน Railway Cloud
