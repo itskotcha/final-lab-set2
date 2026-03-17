@@ -48,6 +48,73 @@ Final Lab ชุดที่ 1 เป็นการพัฒนาระบบ 
 
 ## 4. Architecture Overview
 
+```
+final-lab-set2/
+├── README.md 
+├── TEAM_SPLIT.md
+├── INDIVIDUAL_REPORT.md 
+├── docker-compose.yml
+├── .env.example
+│
+├── auth-service/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── init.sql
+│   └── src/
+│       ├── index.js
+│       ├── db/db.js
+│       ├── middleware/jwtUtils.js
+│       └── routes/auth.js
+│
+├── task-service/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── init.sql
+│   └── src/
+│       ├── index.js
+│       ├── db/db.js
+│       ├── middleware/authMiddleware.js
+│       ├── middleware/jwtUtils.js
+│       └── routes/tasks.js
+│
+├── user-service/
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── init.sql
+│   └── src/
+│       ├── index.js
+│       ├── db/db.js
+│       ├── middleware/authMiddleware.js
+│       ├── middleware/jwtUtils.js
+│       └── routes/users.js
+│
+├── frontend/
+│   ├── index.html
+│   ├── profile.html                    # หน้าสำหรับดูและแก้ไขข้อมูลส่วนตัว
+│   └── config.js
+│
+└── screenshots/
+```
+
+graph TD
+    Client[🌐 Browser / Postman] --> Frontend
+    Client --> ReverseProxy[🛡️ Nginx Reverse Proxy]
+
+    subgraph "Microservices Network"
+        ReverseProxy --> AuthSvc[🔐 Auth Service :3001]
+        ReverseProxy --> TaskSvc[📋 Task Service :3002]
+        ReverseProxy --> UserSvc[👤 User Service :3003]
+        
+        AuthSvc --- AuthDB[(🗄️ Auth DB)]
+        TaskSvc --- TaskDB[(🗄️ Task DB)]
+        UserSvc --- UserDB[(🗄️ User DB)]
+    end
+
+    subgraph "Frontend"
+        Frontend[🎨 Web UI :80]
+    end
+```
+
 > ให้วางภาพ architecture diagram ของกลุ่มไว้ในส่วนนี้  
 > เช่น `docs/architecture-set1.png` หรือแทรกรูปจากโฟลเดอร์ `screenshots/`
 
